@@ -131,7 +131,7 @@ int main(int argc, char * argv[])
 	}
 	else
 	{
-		fprintf(stderr, "usage: ./parse <image.jpg>\n");
+		fprintf(stderr, "usage: ./recover /dev/memory_card\n");
 	}
 	return 0;
 }
