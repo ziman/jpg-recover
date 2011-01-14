@@ -64,8 +64,7 @@ int tryToRecover(FILE * f, int index)
 
 	/* In this position, we have already read FF D8. */
 
-	while (!feof(f))
-	{
+	while (!feof(f)) {
 		/* Read the next marker-intro, which must be FF. */
 		uchar ff = fgetc(f);
 		if (ff != 0xFF) {
@@ -79,11 +78,9 @@ int tryToRecover(FILE * f, int index)
 
 		/* Read the next marker. */
 		uchar marker = fgetc(f);
-		if (firstMarker)
-		{
+		if (firstMarker) {
 			/* First marker, an E0 or E1 marker must follow. */
-			if (marker != 0xE0 && marker != 0xE1)
-			{
+			if (marker != 0xE0 && marker != 0xE1) {
 				/* Bad luck, reuse the index for the next file. */
 				return index;
 			}
@@ -187,8 +184,7 @@ void recoverJpegs(FILE * f)
 	int index = 0;
 
 	/* While not EOF... */
-	while (!feof(f))
-	{
+	while (!feof(f)) {
 		/* Update the state... */
 		state = (state << 8) | fgetc(f);
 
@@ -200,12 +196,10 @@ void recoverJpegs(FILE * f)
 
 int main(int argc, char * argv[])
 {
-	if (argc > 1)
-	{
+	if (argc > 1) {
 		/* We have at least one argument, try to open the input file. */
 		FILE * f = fopen(argv[1], "rb");
-		if (!f)
-		{
+		if (!f) {
 			/* Bad luck opening the file. */
 			perror(argv[1]);
 			return 1;
@@ -215,9 +209,7 @@ int main(int argc, char * argv[])
 		printf("Recovering images from %s...\n", argv[1]);
 		recoverJpegs(f);
 		fclose(f);
-	}
-	else
-	{
+	} else {
 		/* Print usage info. */
 		fprintf(stderr, "usage: ./recover /dev/memory_card\n");
 	}
