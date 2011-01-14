@@ -146,7 +146,11 @@ int tryToRecover(FILE * f, int index)
 
 				/* Check count. */
 				if (count > MAX_SCANLINES_SIZE) {
+					/* Too many bytes, cancel dumping the file. */
 					printf("\n-> Refusing to dump more than %d kB.\n", MAX_SCANLINES_SIZE/1024);
+					fclose(out);
+					/* Reuse the index for the next file. */
+					return index;
 				}
 			}
 			/* Report how many bytes have been copied. */
