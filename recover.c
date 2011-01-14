@@ -192,6 +192,9 @@ void recoverJpegs(FILE * f)
 		if (state == 0xFFD8)
 			index = tryToRecover(f, index);
 	}
+
+	/* A report for the user to make them sure. */
+	printf("End of image reached, quitting.\n");
 }
 
 int main(int argc, char * argv[])
