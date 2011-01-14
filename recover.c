@@ -33,7 +33,7 @@
 #include <stdint.h>
 
 /** Maximum size of the SOS-EOI block, in bytes. */
-#define MAX_SCANLINES_SIZE 16 * 1024 * 1024
+#define MAX_SCANLINES_SIZE 8 * 1024 * 1024
 
 /** An unsigned byte, to save typing. */
 typedef uint8_t uchar;
@@ -130,6 +130,7 @@ int tryToRecover(FILE * f, int index)
 		if (marker == 0xDA) {
 			/* Announce. */
 			printf("  * Scanlines, dumping... ");
+			fflush(stdout);
 
 			/* Last two bytes dumped, big-endian. */
 			uint16_t state = 0;
