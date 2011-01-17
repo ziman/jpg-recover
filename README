@@ -36,7 +36,12 @@ Notes:
 	* CR2 recovery from large files will probably not work on Windows, due to
 	  issues with fseek() and ftell() large-file variants.
 
-	* If you're getting too much garbage, try using the -e option.
+	* If you want to recover as many JPEGs as possible, try using the -e option.
+	  This lifts certain requirements on the JPEGs being recovered and may produce
+	  slight garbage (some recovered JPEG files may not be readable).
+
+	  In general, this is needed for extracting JPEG files embedded in other files,
+	  such as RAW thumbnails, (uncompressed) PDF thumbnails etc.
 
 A (very rough) benchmark:
 	On my 2.2GHz core2duo, a 1G CF card connected via USB is completely recovered
