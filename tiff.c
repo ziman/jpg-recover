@@ -96,8 +96,10 @@ int recoverTiff(FILE * f, int index, bool_t bigEndian, const char * prefix)
 			if (blockEndOffset > tiffSize)
 				tiffSize = blockEndOffset;
 
+#ifdef DEBUG
 			printf("    - tag = %u, type = %u, count = %u, offset = %u\n", tag, type, count, offset);
 			printf("      yielding a block of %u bytes spanning %u..%u\n", blockSize, offset, blockEndOffset);
+#endif
 
 			switch (tag) {
 				case 273: /* Strip offsets */
@@ -139,11 +141,10 @@ int recoverTiff(FILE * f, int index, bool_t bigEndian, const char * prefix)
 		return index;
 	}
 
+	unsigned lastStripEnd = 0;
 	if (stripCount == 1) {
 		/* Here we have exactly one strip, with actual values instead of pointers to arrays. */
-		unsigned lastStripEnd = stripOffsets + stripLengths;
-		if (lastStripEnd > tiffSize)
-			tiffSize = lastStripEnd;
+		lastStripEnd = stripOffsets + stripLengths;
 	} else {
 		unsigned highestOffset = 0;
 		int highestOffsetIndex = 0;
@@ -152,18 +153,18 @@ int recoverTiff(FILE * f, int index, bool_t bigEndian, const char * prefix)
 		for (i = 0; i < stripCount; ++i) {
 			unsigned offset = readLong(f, bigEndian);
 			if (offset > highestOffset) {
-				printf("[%d of %u] Setting highest offset to %u\n", i+1, stripCount, offset);
 				highestOffset = offset;
 				highestOffsetIndex = i;
 			}
 		}
 
 		fseek(f, fileStart + stripLengths + 4*highestOffsetIndex, SEEK_SET);
-		unsigned lastStripEnd = highestOffset + readLong(f, bigEndian);
-
-		if (lastStripEnd > tiffSize)
-			tiffSize = lastStripEnd;
+		lastStripEnd = highestOffset + readLong(f, bigEndian);
 	}
+
+	printf("  * Strip data ends at the offset %u.\n", lastStripEnd);
+	if (lastStripEnd > tiffSize)
+		tiffSize = lastStripEnd;
 
 	char fname[MAX_PREFIX_LENGTH + 10];
 	snprintf(fname, sizeof(fname), "%s%05d.cr2", prefix, index);
