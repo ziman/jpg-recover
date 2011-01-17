@@ -32,6 +32,11 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+enum bool_t {
+	false, true
+};
+typedef enum bool_t bool_t;
+
 /** Maximum size of the SOS-EOI block, in bytes. */
 #define MAX_SCANLINES_SIZE 8 * 1024 * 1024
 
@@ -41,8 +46,21 @@ typedef uint8_t uchar;
 /** Print a fatal error and exit. */
 void die(char * msg)
 {
-	fprintf(stderr, "%s\n", msg);
+	fprintf(stderr, "Error: %s\nAborting.\n", msg);
 	exit(1);
+}
+
+/**
+ * Try to recover a CR2 file from the current position in the stream.
+ * @param f The input stream.
+ * @param index The index used to generate the output file name.
+ * @param bigEndian true iff the TIFF file is big-endian.
+ * @return The next index if successful, the same index if unsuccessful.
+ * @note CR2 files are structurally TIFF files.
+ */
+int recoverCr2(FILE * f, int index, bool_t bigEndian)
+{
+	die("CR2 recovery not implemented yet.");
 }
 
 /**
@@ -51,7 +69,7 @@ void die(char * msg)
  * @param index The index used to generate the output file name.
  * @return The next index if successful, the same index if unsuccessful.
  */
-int tryToRecover(FILE * f, int index)
+int recoverJpeg(FILE * f, int index)
 {
 	/** Are we processing the first marker? */
 	int firstMarker = 1;
@@ -172,10 +190,10 @@ int tryToRecover(FILE * f, int index)
 }
 
 /**
- * Recover JPEG files from the given stream.
+ * Recover image files from the given stream.
  * @param f The stream.
  */
-void recoverJpegs(FILE * f)
+void recoverImages(FILE * f, bool_t jpeg, bool_t cr2)
 {
 	/** Last two bytes read, big-endian. */
 	uint16_t state = 0;
@@ -188,9 +206,20 @@ void recoverJpegs(FILE * f)
 		/* Update the state... */
 		state = (state << 8) | fgetc(f);
 
-		/* If SOI found, proceed. */
-		if (state == 0xFFD8)
-			index = tryToRecover(f, index);
+		/* Compare with known startcodes. */
+		switch (state)
+		{
+			case 0xFFD8: /* JPEG Start-Of-Image */
+				if (jpeg)
+					index = recoverJpeg(f, index);
+				break;
+
+			case 0x4949:
+			case 0x4D4D:
+				if (cr2)
+					index = recoverCr2(f, index, state == 0x4D4D);
+				break;
+		}
 	}
 
 	/* A report for the user to make them sure. */
@@ -208,9 +237,11 @@ int main(int argc, char * argv[])
 			return 1;
 		}
 
-		/* Recover'em and close the input file. */
+		/* Recover'em. */
 		printf("Recovering images from %s...\n", argv[1]);
-		recoverJpegs(f);
+		recoverImages(f, true, true);
+
+		/* Close the input file. */
 		fclose(f);
 	} else {
 		/* Print usage info. */
