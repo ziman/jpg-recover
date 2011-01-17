@@ -7,6 +7,8 @@
 #define GLOBALS_H
 
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 /** An explicit boolean type. */
 typedef int bool_t;
@@ -21,5 +23,11 @@ typedef uint8_t uchar;
 
 /** Print a fatal error and exit. */
 void die(const char * msg);
+
+/** Portable ftell(). */
+off_t ftellx(FILE * f);
+
+/** Portable fseek(), working always as SEEK_SET. */
+void fseekx(FILE * f, off_t pos);
 
 #endif

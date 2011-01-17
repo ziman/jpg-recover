@@ -84,14 +84,14 @@ int recoverTiff(FILE * f, int index, bool_t bigEndian, const char * prefix)
 	unsigned stripCount = 0;
 
 	/* Parse the directories. */
-	off_t fileStart = ftello(f) - 4;
+	off_t fileStart = ftellx(f) - 4;
 	do {
 		/* Read the IF directory offset. */
 		unsigned ifd = readLong(f, bigEndian);
 		if (ifd == 0) break;
 
 		/* Rewind to the directory. */
-		fseeko(f, fileStart + ifd, SEEK_SET);
+		fseekx(f, fileStart + ifd);
 
 		/* Get the entry count. */
 		unsigned entryCount = readShort(f, bigEndian);
@@ -161,7 +161,7 @@ int recoverTiff(FILE * f, int index, bool_t bigEndian, const char * prefix)
 		/* Multiple strips, iterate over each one to find the highest offset. */
 		unsigned highestOffset = 0;
 		int highestOffsetIndex = 0;
-		fseeko(f, fileStart + stripOffsets, SEEK_SET);
+		fseekx(f, fileStart + stripOffsets);
 		int i;
 		for (i = 0; i < stripCount; ++i) {
 			/* Read the offset of the strip. */
@@ -173,7 +173,7 @@ int recoverTiff(FILE * f, int index, bool_t bigEndian, const char * prefix)
 		}
 
 		/* Now, reach into the STRIP_LENGTHS list and get the length of the last strip. */
-		fseeko(f, fileStart + stripLengths + 4*highestOffsetIndex, SEEK_SET);
+		fseekx(f, fileStart + stripLengths + 4*highestOffsetIndex);
 		lastStripEnd = highestOffset + readLong(f, bigEndian);
 	}
 
@@ -191,7 +191,7 @@ int recoverTiff(FILE * f, int index, bool_t bigEndian, const char * prefix)
 
 	/* Seek to the beginning of the TIFF file and dump it.*/
 	printf("-> The TIFF file appears correct, dumping %u bytes as %s... ", tiffSize, fname);
-	fseeko(f, fileStart, SEEK_SET);
+	fseekx(f, fileStart);
 	dumpFile(f, fname, tiffSize);
 	printf("done.\n");
 

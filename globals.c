@@ -13,3 +13,13 @@ void die(const char * msg)
 	fprintf(stderr, "Error: %s\nAborting.\n", msg);
 	exit(1);
 }
+
+off_t ftellx(FILE * f)
+{
+	return ftello(f);
+}
+
+void fseekx(FILE * f, off_t pos)
+{
+	fseeko(f, pos, SEEK_SET);
+}

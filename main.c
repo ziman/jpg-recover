@@ -44,13 +44,13 @@ void recoverImages(FILE * f, bool_t jpeg, bool_t cr2, bool_t requireE0E1, const 
 			case 0x4D4D:
 				if (cr2) {
 					/* Try to recover the TIFF file. */
-					off_t beforeTiff = ftello(f);
+					off_t beforeTiff = ftellx(f);
 					int newIndex = recoverTiff(f, index, state == 0x4D4D, prefix);
 
 					/* Check the success. */
 					if (newIndex == index) {
 						/* Unsuccessful -> rewind to get at least the JPEG thumbnails. */
-						fseeko(f, beforeTiff, SEEK_SET);
+						fseekx(f, beforeTiff);
 					} else {
 						index = newIndex;
 					}
