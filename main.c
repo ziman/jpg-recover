@@ -98,7 +98,7 @@ int main(int argc, char ** argv)
 		char ** argEnd = argv + argc;
 		char ** curArg = argv + 1;
 		while (curArg < argEnd) {
-			if (!strcmp("-J", *curArg)) {
+			if (!strcmp("-j", *curArg)) {
 				jpeg = false;
 			}
 			else if (!strcmp("-r", *curArg)) {
