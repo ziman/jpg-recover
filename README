@@ -1,26 +1,32 @@
-recover -- Extract JPEG files from raw bytes (filesystem images etc.).
+recover -- Extract JPEG/CR2 files from raw bytes (filesystem images etc.).
 
 Copyright (c) 2011, Matus Tejiscak <functor.sk@ziman>.
 Released under the BSD license.
 http://creativecommons.org/licenses/BSD/
 
 Purpose:
-	This program can be used to extract accidentally deleted JPEG images
+	This program can be used to extract accidentally deleted JPEG/CR2 images
 	from any memory media (filesystem images, memory cards, etc).
 
 Usage:
-	$ cc -O2 recover.c -o recover
+	$ make
 	$ ./recover /dev/memory_card
-	...and just watch JPEG files appear in the CWD.
+	...and just watch image files appear in the CWD.
+
+	-- alternatively --
+
+	$ cc -O2 -o recover *.c
+	$ ./recover /dev/memory_card
 
 Warning:
-	The program uses a fixed naming scheme (recovered%05d.jpg) and will
+	The program uses a fixed naming scheme (recovered%05d.EXT) and will
 	happily overwrite any files with coinciding names in the CWD without
 	warning.
 
-A benchmark:
-	I dumped 300 images from a 1G CF card in:
-		real	1m35.379s
-		user	0m39.362s
-		sys	0m5.468s
-	The processor was 50% idle, which means the process was IO-bound.
+Notes:
+	* This program parses JPEG/CR2 structure while recovering, thus extracting
+	  correct images, without relying on hacks.
+	* CR2 recovery requires seeking on the device. If your device does not support
+	  seeking, create an image or use the -r option to disable CR2 recovery.
+	* If recovery of a CR2 file is not successful, the data is rescanned to save
+	  at least JPEG thumbnails contained within.
