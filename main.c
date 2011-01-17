@@ -32,7 +32,7 @@ void recoverImages(FILE * f, bool_t jpeg, bool_t cr2, const char * prefix)
 					index = recoverJpeg(f, index, prefix);
 				break;
 
-			case 0x4949:
+			case 0x4949: /* TIFF endianity sign */
 			case 0x4D4D:
 				if (cr2)
 					index = recoverTiff(f, index, state == 0x4D4D, prefix);
@@ -44,16 +44,18 @@ void recoverImages(FILE * f, bool_t jpeg, bool_t cr2, const char * prefix)
 	printf("End of image reached, quitting.\n");
 }
 
+/** Print usage, don't quit. */
 void usage() {
 	static const char * const content =
 		"usage:\n"
-		"    ./recover [-J] [-r] [-p <prefix>] /dev/memory_card\n"
+		"    ./recover [-J] [-r] [-p <prefix>] [-h/--help] /dev/memory_card\n"
 		"\n"
 		"Available options:\n"
 		"    -J          -- Do not recover JPEG files.\n"
 		"    -r          -- Do recover CR2 files.\n"
 		"    -p <prefix> -- Use this prefix for recovered files. May contain slashes.\n"
 		"                   (default: recovered)\n"
+		"    -h / --help -- Print this help and quit successfully.\n"
 		"\n"
 		"By default, the program will recover JPEG files and not CR2 files.\n"
 		;
@@ -72,18 +74,25 @@ int main(int argc, char ** argv)
 		char ** argEnd = argv + argc;
 		char ** curArg = argv + 1;
 		while (curArg < argEnd) {
-			if (!strcmp("-J", *curArg))
+			if (!strcmp("-J", *curArg)) {
 				jpeg = false;
-			else if (!strcmp("-r", *curArg))
+			}
+			else if (!strcmp("-r", *curArg)) {
 				cr2 = true;
+			}
 			else if (!strcmp("-p", *curArg)) {
 				if (++curArg >= argEnd)
 					die("-p requires an argument: the prefix.");
 
 				prefix = *curArg;
 			}
+			else if (!strcmp("--help", *curArg) || !strcmp("-h", *curArg)) {
+				usage();
+				return 0;
+			}
 			else break;
 
+			/* Move on... */
 			++curArg;
 		}
 
