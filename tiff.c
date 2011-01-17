@@ -62,13 +62,20 @@ unsigned typeSize(unsigned type)
 
 int recoverTiff(FILE * f, int index, bool_t bigEndian, const char * prefix)
 {
+	/* Check for the correct magic code. */
 	unsigned magic = readShort(f, bigEndian);
 	if (magic != 42)
 		return index;
 
-	printf("TIFF file header... reading on.\n");
+	printf("Correct TIFF file header recognized... reading on.\n");
 
+	/* These values will be gathered while reading the file. */
 	unsigned tiffSize = 0;
+	unsigned stripOffsets = 0;
+	unsigned stripLengths = 0;
+	unsigned stripCount = 0;
+
+	/* Parse the directories. */
 	off_t fileStart = ftell(f) - 4;
 	do {
 		unsigned ifd = readLong(f, bigEndian);
@@ -89,16 +96,80 @@ int recoverTiff(FILE * f, int index, bool_t bigEndian, const char * prefix)
 			if (blockEndOffset > tiffSize)
 				tiffSize = blockEndOffset;
 
-			printf("    -> tag = %u, type = %u, count = %u, offset = %u\n", tag, type, count, offset);
-			printf("       yielding a block of %u bytes spanning %u..%u\n", blockSize, offset, blockEndOffset);
+			printf("    - tag = %u, type = %u, count = %u, offset = %u\n", tag, type, count, offset);
+			printf("      yielding a block of %u bytes spanning %u..%u\n", blockSize, offset, blockEndOffset);
+
+			switch (tag) {
+				case 273: /* Strip offsets */
+					stripOffsets = offset;
+					if (type != 4) {
+						printf("-> STRIP_OFFSETS are not LONGs. Skipping.\n");
+						return index;
+					}
+					if (stripCount && stripCount != count) {
+						printf("  ! Warning: STRIP_OFFSETS has different count of elements than STRIP_LENGTHS.\n");
+						printf("  !          The resulting file may be unusable.\n");
+						stripCount = (stripCount > count) ? count : stripCount;
+					} else {
+						stripCount = count;
+					}
+					break;
+				case 279: /* Strip byte counts */
+					stripLengths = offset;
+					if (type != 4) {
+						printf("-> STRIP_LENGTHS are not LONGs. Skipping.\n");
+						return index;
+					}
+					if (stripCount && stripCount != count) {
+						printf("  ! Warning: STRIP_OFFSETS has different count of elements than STRIP_LENGTHS.\n");
+						printf("  !          The resulting file may be unusable.\n");
+						stripCount = (stripCount > count) ? count : stripCount;
+					} else {
+						stripCount = count;
+					}
+					break;
+				default: /* Unrecognized tag, ignore it. */
+					break;
+			}
 		}
 	} while (true);
+
+	if (!stripOffsets || !stripLengths) {
+		printf("-> Strip offsets or lengths not present, this file would be unusable. Skipping.\n");
+		return index;
+	}
+
+	if (stripCount == 1) {
+		/* Here we have exactly one strip, with actual values instead of pointers to arrays. */
+		unsigned lastStripEnd = stripOffsets + stripLengths;
+		if (lastStripEnd > tiffSize)
+			tiffSize = lastStripEnd;
+	} else {
+		unsigned highestOffset = 0;
+		int highestOffsetIndex = 0;
+		fseek(f, fileStart + stripOffsets, SEEK_SET);
+		int i;
+		for (i = 0; i < stripCount; ++i) {
+			unsigned offset = readLong(f, bigEndian);
+			if (offset > highestOffset) {
+				printf("[%d of %u] Setting highest offset to %u\n", i+1, stripCount, offset);
+				highestOffset = offset;
+				highestOffsetIndex = i;
+			}
+		}
+
+		fseek(f, fileStart + stripLengths + 4*highestOffsetIndex, SEEK_SET);
+		unsigned lastStripEnd = highestOffset + readLong(f, bigEndian);
+
+		if (lastStripEnd > tiffSize)
+			tiffSize = lastStripEnd;
+	}
 
 	char fname[MAX_PREFIX_LENGTH + 10];
 	snprintf(fname, sizeof(fname), "%s%05d.cr2", prefix, index);
 	fseek(f, fileStart, SEEK_SET);
 
-	printf("The TIFF file appears correct, dumping %d bytes as %s... ", tiffSize, fname);
+	printf("-> The TIFF file appears correct, dumping %u bytes as %s... ", tiffSize, fname);
 	fflush(stdout);
 
 	dumpFile(f, fname, tiffSize);
