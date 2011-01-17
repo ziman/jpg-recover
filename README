@@ -30,3 +30,5 @@ Notes:
 	  seeking, create an image or use the -r option to disable CR2 recovery.
 	* If recovery of a CR2 file is not successful, the data is rescanned to save
 	  at least JPEG thumbnails contained within.
+	* CR2 recovery from large files will probably not work on Windows, due to
+	  issues with fseek() and ftell() large-file variants.
