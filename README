@@ -26,12 +26,17 @@ Warning:
 Notes:
 	* This program parses JPEG/CR2 structure while recovering, thus extracting
 	  correct images, without relying on hacks.
+
 	* CR2 recovery requires seeking on the device. If your device does not support
 	  seeking, create an image or use the -r option to disable CR2 recovery.
+
 	* If recovery of a CR2 file is not successful, the data is rescanned to save
 	  at least JPEG thumbnails contained within.
+
 	* CR2 recovery from large files will probably not work on Windows, due to
 	  issues with fseek() and ftell() large-file variants.
+
+	* If you're getting too much garbage, try using the -e option.
 
 A (very rough) benchmark:
 	On my 2.2GHz core2duo, a 1G CF card connected via USB is completely recovered

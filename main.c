@@ -71,8 +71,8 @@ void usage() {
 		"\n"
 		"Available options:\n"
 		"    -j          -- Do not recover JPEG files.\n"
-		"    -e          -- Recover JPEG files embedded in other files.\n"
-		"                   (default: do not recover embedded JPEGs)\n"
+		"    -e          -- Do not recover JPEG files embedded in other files.\n"
+		"                   (default: do recover embedded JPEGs)\n"
 		"    -r          -- Do not recover CR2 files.\n"
 		"    -p <prefix> -- Use this prefix for recovered files. May contain slashes.\n"
 		"                   (default: \"recovered\")\n"
@@ -89,7 +89,7 @@ int main(int argc, char ** argv)
 		/* Default options. */
 		bool_t jpeg = true;
 		bool_t cr2 = true;
-		bool_t requireE0E1 = true;
+		bool_t requireE0E1 = false;
 		const char * prefix = "recovered";
 		
 		/* We have at least one argument, parse the commandline options. */
@@ -103,7 +103,7 @@ int main(int argc, char ** argv)
 				cr2 = false;
 			}
 			else if (!strcmp("-e", *curArg)) {
-				requireE0E1 = false;
+				requireE0E1 = true;
 			}
 			else if (!strcmp("-p", *curArg)) {
 				if (++curArg >= argEnd)
