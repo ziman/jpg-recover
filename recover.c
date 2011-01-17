@@ -31,11 +31,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 
-enum bool_t {
-	false, true
-};
-typedef enum bool_t bool_t;
+typedef int bool_t;
+#define false 0
+#define true 1
 
 /** Maximum size of the SOS-EOI block, in bytes. */
 #define MAX_SCANLINES_SIZE 8 * 1024 * 1024
@@ -58,7 +58,7 @@ void die(char * msg)
  * @return The next index if successful, the same index if unsuccessful.
  * @note CR2 files are structurally TIFF files.
  */
-int recoverCr2(FILE * f, int index, bool_t bigEndian)
+int recoverCr2(FILE * f, int index, bool_t bigEndian, const char * prefix)
 {
 	die("CR2 recovery not implemented yet.");
 }
@@ -69,7 +69,7 @@ int recoverCr2(FILE * f, int index, bool_t bigEndian)
  * @param index The index used to generate the output file name.
  * @return The next index if successful, the same index if unsuccessful.
  */
-int recoverJpeg(FILE * f, int index)
+int recoverJpeg(FILE * f, int index, const char * prefix)
 {
 	/** Are we processing the first marker? */
 	int firstMarker = 1;
@@ -104,7 +104,7 @@ int recoverJpeg(FILE * f, int index)
 			}
 
 			/* Looks okay, generate a name for the recovered file. */
-			snprintf(fname, sizeof(fname), "recovered%05d.jpg", index);
+			snprintf(fname, sizeof(fname), "%s%05d.jpg", prefix, index);
 
 			/* Open the file. */
 			out = fopen(fname, "wb");
@@ -193,7 +193,7 @@ int recoverJpeg(FILE * f, int index)
  * Recover image files from the given stream.
  * @param f The stream.
  */
-void recoverImages(FILE * f, bool_t jpeg, bool_t cr2)
+void recoverImages(FILE * f, bool_t jpeg, bool_t cr2, const char * prefix)
 {
 	/** Last two bytes read, big-endian. */
 	uint16_t state = 0;
@@ -211,13 +211,13 @@ void recoverImages(FILE * f, bool_t jpeg, bool_t cr2)
 		{
 			case 0xFFD8: /* JPEG Start-Of-Image */
 				if (jpeg)
-					index = recoverJpeg(f, index);
+					index = recoverJpeg(f, index, prefix);
 				break;
 
 			case 0x4949:
 			case 0x4D4D:
 				if (cr2)
-					index = recoverCr2(f, index, state == 0x4D4D);
+					index = recoverCr2(f, index, state == 0x4D4D, prefix);
 				break;
 		}
 	}
@@ -226,26 +226,73 @@ void recoverImages(FILE * f, bool_t jpeg, bool_t cr2)
 	printf("End of image reached, quitting.\n");
 }
 
-int main(int argc, char * argv[])
+void usage() {
+	static const char * const content =
+		"usage:\n"
+		"    ./recover [-J] [-r] [-p <prefix>] /dev/memory_card\n"
+		"\n"
+		"Available options:\n"
+		"    -J          -- Do not recover JPEG files.\n"
+		"    -r          -- Do recover CR2 files.\n"
+		"    -p <prefix> -- Use this prefix for recovered files. May contain slashes.\n"
+		"                   (default: recovered)\n"
+		"\n"
+		"By default, the program will recover JPEG files and not CR2 files.\n"
+		;
+	fprintf(stderr, "%s", content);
+}
+
+int main(int argc, char ** argv)
 {
 	if (argc > 1) {
-		/* We have at least one argument, try to open the input file. */
-		FILE * f = fopen(argv[1], "rb");
+		/* Default options. */
+		bool_t jpeg = true;
+		bool_t cr2 = false;
+		const char * prefix = "recovered";
+		
+		/* We have at least one argument, parse the commandline options. */
+		char ** argEnd = argv + argc;
+		char ** curArg = argv + 1;
+		while (curArg < argEnd) {
+			if (!strcmp("-J", *curArg))
+				jpeg = false;
+			else if (!strcmp("-r", *curArg))
+				cr2 = true;
+			else if (!strcmp("-p", *curArg)) {
+				if (++curArg >= argEnd)
+					die("-p requires an argument: the prefix.");
+
+				prefix = *curArg;
+			}
+			else break;
+
+			++curArg;
+		}
+
+		/* Some sanity checks. */
+		if (!jpeg && !cr2)
+			die("Both JPEG and CR2 recovery disabled, nothing to do.");
+		if (curArg >= argEnd)
+			die("Missing the last argument: /dev/memory_card or image file.");
+
+		/* Try to open the file. */
+		FILE * f = fopen(*curArg, "rb");
 		if (!f) {
 			/* Bad luck opening the file. */
-			perror(argv[1]);
+			perror(*curArg);
 			return 1;
 		}
 
-		/* Recover'em. */
-		printf("Recovering images from %s...\n", argv[1]);
-		recoverImages(f, true, true);
+		/* Recover the images. */
+		printf("Recovering images from %s...\n", *curArg);
+		recoverImages(f, jpeg, cr2, prefix);
 
 		/* Close the input file. */
 		fclose(f);
 	} else {
 		/* Print usage info. */
-		fprintf(stderr, "usage: ./recover /dev/memory_card\n");
+		usage();
+		return 1;
 	}
 	return 0;
 }
