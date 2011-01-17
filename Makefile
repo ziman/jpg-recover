@@ -1,4 +1,4 @@
-CFLAGS = -D_FILE_OFFSET_BITS=64
+CFLAGS = -D_FILE_OFFSET_BITS=64 -W -Wall
 
 %.o: %.c
 	cc $(CFLAGS) -O2 -c -o $@ $<

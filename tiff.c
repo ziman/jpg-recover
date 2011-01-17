@@ -162,7 +162,7 @@ int recoverTiff(FILE * f, int index, bool_t bigEndian, const char * prefix)
 		unsigned highestOffset = 0;
 		int highestOffsetIndex = 0;
 		fseekx(f, fileStart + stripOffsets);
-		int i;
+		unsigned i;
 		for (i = 0; i < stripCount; ++i) {
 			/* Read the offset of the strip. */
 			unsigned offset = readLong(f, bigEndian);

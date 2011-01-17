@@ -109,7 +109,7 @@ int recoverJpeg(FILE * f, int index, bool_t requireE0E1, const char * prefix)
 				}
 			}
 			/* Report how many bytes have been copied. */
-			printf("%d bytes.\n", count, state);
+			printf("%d bytes.\n", count);
 
 			/* File complete, wheeee! */
 			printf("-> saved successfully as %s.\n", fname);
