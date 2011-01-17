@@ -3,6 +3,7 @@
 
 #include "tiff.h"
 
+/** Read an unsigned 16-bit integer from the file. */
 inline unsigned readShort(FILE * f, bool_t bigEndian)
 {
 	if (bigEndian)
@@ -11,6 +12,7 @@ inline unsigned readShort(FILE * f, bool_t bigEndian)
 		return fgetc(f) | (fgetc(f) << 8);
 }
 
+/** Read an unsigned 32-bit integer from the file. */
 inline unsigned readLong(FILE * f, bool_t bigEndian)
 {
 	if (bigEndian)
@@ -19,28 +21,29 @@ inline unsigned readLong(FILE * f, bool_t bigEndian)
 		return readShort(f, bigEndian) | (readShort(f, bigEndian) << 16);
 }
 
+/** Create a new file, copying <i>size</i> bytes from the input file into it. */
 void dumpFile(FILE * f, const char * const fname, unsigned size)
 {
+	/* Try to open the file. */
 	FILE * out = fopen(fname, "wb");
 	if (!out) {
 		perror(fname);
 		die("Could not dump recovered file.");
 	}
 
+	/* Copy the data. */
 	while (size > 0) {
-		uint8_t buffer[512 * 1024]; /* 0.5MB buffer for copying */
+		uint8_t buffer[512 * 1024]; /* 0.5MB */
 		unsigned toRead = (size < sizeof(buffer)) ? size : sizeof(buffer);
 		unsigned bytes = fread(buffer, 1, toRead, f);
-		if (bytes == 0) {
-			if (feof(f))
-				break;
-			printf("size = %d\n", size);
+		if (bytes == 0)
 			die("Error reading input, fread returned 0.");
-		}
+		
 		fwrite(buffer, 1, bytes, out);
 		size -= bytes;
 	}
 
+	/* Clean up. */
 	fclose(out);
 }
 
@@ -78,14 +81,19 @@ int recoverTiff(FILE * f, int index, bool_t bigEndian, const char * prefix)
 	/* Parse the directories. */
 	off_t fileStart = ftell(f) - 4;
 	do {
+		/* Read the IF directory offset. */
 		unsigned ifd = readLong(f, bigEndian);
 		if (ifd == 0) break;
 
+		/* Rewind to the directory. */
 		fseek(f, fileStart + ifd, SEEK_SET);
+
+		/* Get the entry count. */
 		unsigned entryCount = readShort(f, bigEndian);
 		printf("  * IF directory at offset %u, %u entries.\n", ifd, entryCount);
+
+		/* Read all entries. */
 		while (entryCount-- > 0) {
-			/* Read the entry. */
 			unsigned tag = readShort(f, bigEndian);
 			unsigned type = readShort(f, bigEndian);
 			unsigned count = readLong(f, bigEndian);
@@ -93,16 +101,13 @@ int recoverTiff(FILE * f, int index, bool_t bigEndian, const char * prefix)
 			unsigned blockSize = count * typeSize(type);
 			unsigned blockEndOffset = offset + blockSize;
 
+			/* A block may constitute the last bytes of a TIFF file, according to the spec. */
 			if (blockEndOffset > tiffSize)
 				tiffSize = blockEndOffset;
 
-#ifdef DEBUG
-			printf("    - tag = %u, type = %u, count = %u, offset = %u\n", tag, type, count, offset);
-			printf("      yielding a block of %u bytes spanning %u..%u\n", blockSize, offset, blockEndOffset);
-#endif
-
+			/* Process known IFD entries. */
 			switch (tag) {
-				case 273: /* Strip offsets */
+				case 273: /* Strip offsets. */
 					stripOffsets = offset;
 					if (type != 4) {
 						printf("-> STRIP_OFFSETS are not LONGs. Skipping.\n");
@@ -132,25 +137,29 @@ int recoverTiff(FILE * f, int index, bool_t bigEndian, const char * prefix)
 					break;
 				default: /* Unrecognized tag, ignore it. */
 					break;
-			}
-		}
-	} while (true);
+			} /* End of the switch. */
+		} /* End of the loop over entries in an IFD. */
+	} while (true); /* End of the loop over IFDs. */
 
-	if (!stripOffsets || !stripLengths) {
-		printf("-> Strip offsets or lengths not present, this file would be unusable. Skipping.\n");
+	/* Check whether we have any strips at all. */
+	if (!stripOffsets || !stripLengths || !stripCount) {
+		printf("-> Strip offsets/lengths/count not present, this file would be unusable. Skipping.\n");
 		return index;
 	}
 
+	/* Usually end of the last strip is the end of the whole TIFF file. */
 	unsigned lastStripEnd = 0;
 	if (stripCount == 1) {
 		/* Here we have exactly one strip, with actual values instead of pointers to arrays. */
 		lastStripEnd = stripOffsets + stripLengths;
 	} else {
+		/* Multiple strips, iterate over each one to find the highest offset. */
 		unsigned highestOffset = 0;
 		int highestOffsetIndex = 0;
 		fseek(f, fileStart + stripOffsets, SEEK_SET);
 		int i;
 		for (i = 0; i < stripCount; ++i) {
+			/* Read the offset of the strip. */
 			unsigned offset = readLong(f, bigEndian);
 			if (offset > highestOffset) {
 				highestOffset = offset;
@@ -158,25 +167,30 @@ int recoverTiff(FILE * f, int index, bool_t bigEndian, const char * prefix)
 			}
 		}
 
+		/* Now, reach into the STRIP_LENGTHS list and get the length of the last strip. */
 		fseek(f, fileStart + stripLengths + 4*highestOffsetIndex, SEEK_SET);
 		lastStripEnd = highestOffset + readLong(f, bigEndian);
 	}
 
+	/* Print some nice info. */
 	printf("  * Strip data ends at the offset %u.\n", lastStripEnd);
+	fflush(stdout);
+
+	/* Adjust the calculated TIFF size. */
 	if (lastStripEnd > tiffSize)
 		tiffSize = lastStripEnd;
 
+	/* Generate the output file name. */
 	char fname[MAX_PREFIX_LENGTH + 10];
 	snprintf(fname, sizeof(fname), "%s%05d.cr2", prefix, index);
-	fseek(f, fileStart, SEEK_SET);
 
+	/* Seek to the beginning of the TIFF file and dump it.*/
 	printf("-> The TIFF file appears correct, dumping %u bytes as %s... ", tiffSize, fname);
-	fflush(stdout);
-
+	fseek(f, fileStart, SEEK_SET);
 	dumpFile(f, fname, tiffSize);
-
 	printf("done.\n");
 
+	/* Use the next index for the next image. */
 	return index + 1;
 }
 
