@@ -15,7 +15,7 @@ Usage:
 
 	-- alternatively --
 
-	$ cc -O2 -o recover *.c
+	$ cc -D_FILE_OFFSET_BITS=64 -O2 -o recover *.c
 	$ ./recover /dev/memory_card
 
 Warning:
