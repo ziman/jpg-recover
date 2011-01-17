@@ -20,8 +20,7 @@ Usage:
 
 Warning:
 	The program uses a fixed naming scheme (recovered%05d.EXT) and will
-	happily overwrite any files with coinciding names in the CWD without
-	warning.
+	happily overwrite any files with coinciding names without warning.
 
 Notes:
 	* This program parses JPEG/CR2 structure while recovering, thus extracting
@@ -31,7 +30,7 @@ Notes:
 	  seeking, create an image or use the -r option to disable CR2 recovery.
 
 	* If recovery of a CR2 file is not successful, the data is rescanned to save
-	  at least JPEG thumbnails contained within.
+	  at least JPEG thumbnails contained within (see the -e option).
 
 	* CR2 recovery from large files will probably not work on Windows, due to
 	  issues with fseek() and ftell() large-file variants.
