@@ -10,6 +10,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef _WIN32
+#define off_t __int64
+#endif
+
 /** An explicit boolean type. */
 typedef int bool_t;
 #define false 0

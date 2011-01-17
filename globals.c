@@ -16,10 +16,18 @@ void die(const char * msg)
 
 off_t ftellx(FILE * f)
 {
+#ifdef _WIN32
+	return ftell(f);
+#else
 	return ftello(f);
+#endif
 }
 
 void fseekx(FILE * f, off_t pos)
 {
+#ifdef _WIN32
+	fseek(f, pos, SEEK_SET);
+#else
 	fseeko(f, pos, SEEK_SET);
+#endif
 }
