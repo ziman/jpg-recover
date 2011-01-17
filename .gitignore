@@ -1,3 +1,6 @@
 recover
 *.jpg
 *.kdev4
+*.cr2
+.rawstudio
+*.exe
