@@ -10,6 +10,9 @@
 /**
  * Recover image files from the given stream.
  * @param f The stream.
+ * @param jpeg True to run JPEG recovery.
+ * @param cr2 True to run CR2 recovery.
+ * @param prefix The prefix used to generate the names of the recovered files.
  */
 void recoverImages(FILE * f, bool_t jpeg, bool_t cr2, const char * prefix)
 {

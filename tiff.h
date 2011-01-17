@@ -10,6 +10,7 @@
  * @param f The input stream.
  * @param index The index used to generate the output file name.
  * @param bigEndian true iff the TIFF file is big-endian.
+ * @param prefix The prefix used to generate the names of the recovered files.
  * @return The next index if successful, the same index if unsuccessful.
  * @note CR2 files are structurally TIFF files.
  */
