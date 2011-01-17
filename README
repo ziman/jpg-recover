@@ -22,5 +22,5 @@ A benchmark:
 	I dumped 300 images from a 1G CF card in:
 		real	1m35.379s
 		user	0m39.362s
- 		sys	0m5.468s
+		sys	0m5.468s
 	The processor was 50% idle, which means the process was IO-bound.
