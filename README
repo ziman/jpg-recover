@@ -32,3 +32,7 @@ Notes:
 	  at least JPEG thumbnails contained within.
 	* CR2 recovery from large files will probably not work on Windows, due to
 	  issues with fseek() and ftell() large-file variants.
+
+A (very rough) benchmark:
+	On my 2.2GHz core2duo, a 1G CF card connected via USB is completely recovered
+	in ~1.5 min, having CPU usage around 50% of one core -- the process is IO-bound.
