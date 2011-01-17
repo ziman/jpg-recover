@@ -14,7 +14,7 @@
  * @param cr2 True to run CR2 recovery.
  * @param prefix The prefix used to generate the names of the recovered files.
  */
-void recoverImages(FILE * f, bool_t jpeg, bool_t cr2, const char * prefix)
+void recoverImages(FILE * f, bool_t jpeg, bool_t cr2, bool_t requireE0E1, const char * prefix)
 {
 	/** Last two bytes read, big-endian. */
 	uint16_t state = 0;
@@ -32,7 +32,7 @@ void recoverImages(FILE * f, bool_t jpeg, bool_t cr2, const char * prefix)
 		{
 			case 0xFFD8: /* JPEG Start-Of-Image */
 				if (jpeg)
-					index = recoverJpeg(f, index, prefix);
+					index = recoverJpeg(f, index, requireE0E1, prefix);
 				break;
 
 			case 0x4949: /* TIFF endianity sign */
@@ -51,16 +51,18 @@ void recoverImages(FILE * f, bool_t jpeg, bool_t cr2, const char * prefix)
 void usage() {
 	static const char * const content =
 		"usage:\n"
-		"    ./recover [-J] [-r] [-p <prefix>] [-h/--help] /dev/memory_card\n"
+		"    ./recover [-j] [-e] [-r] [-p <prefix>] [-h/--help] /dev/memory_card\n"
 		"\n"
 		"Available options:\n"
-		"    -J          -- Do not recover JPEG files.\n"
-		"    -r          -- Do recover CR2 files.\n"
+		"    -j          -- Do not recover JPEG files.\n"
+		"    -e          -- Recover JPEG files embedded in other files.\n"
+		"                   (default: do not recover embedded JPEGs)\n"
+		"    -r          -- Do not recover CR2 files.\n"
 		"    -p <prefix> -- Use this prefix for recovered files. May contain slashes.\n"
-		"                   (default: recovered)\n"
+		"                   (default: \"recovered\")\n"
 		"    -h / --help -- Print this help and quit successfully.\n"
 		"\n"
-		"By default, the program will recover JPEG files and not CR2 files.\n"
+		"By default, the program will recover both JPEG files and CR2 files.\n"
 		;
 	fprintf(stderr, "%s", content);
 }
@@ -70,7 +72,8 @@ int main(int argc, char ** argv)
 	if (argc > 1) {
 		/* Default options. */
 		bool_t jpeg = true;
-		bool_t cr2 = false;
+		bool_t cr2 = true;
+		bool_t requireE0E1 = true;
 		const char * prefix = "recovered";
 		
 		/* We have at least one argument, parse the commandline options. */
@@ -81,7 +84,10 @@ int main(int argc, char ** argv)
 				jpeg = false;
 			}
 			else if (!strcmp("-r", *curArg)) {
-				cr2 = true;
+				cr2 = false;
+			}
+			else if (!strcmp("-e", *curArg)) {
+				requireE0E1 = false;
 			}
 			else if (!strcmp("-p", *curArg)) {
 				if (++curArg >= argEnd)
@@ -117,7 +123,7 @@ int main(int argc, char ** argv)
 
 		/* Recover the images. */
 		printf("Recovering images from %s...\n", *curArg);
-		recoverImages(f, jpeg, cr2, prefix);
+		recoverImages(f, jpeg, cr2, requireE0E1, prefix);
 
 		/* Close the input file. */
 		fclose(f);

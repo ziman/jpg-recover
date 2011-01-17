@@ -3,7 +3,7 @@
 /** Maximum size of the SOS-EOI block, in bytes. */
 #define MAX_SCANLINES_SIZE 8 * 1024 * 1024
 
-int recoverJpeg(FILE * f, int index, const char * prefix)
+int recoverJpeg(FILE * f, int index, bool_t requireE0E1, const char * prefix)
 {
 	/** Are we processing the first marker? */
 	int firstMarker = 1;
@@ -32,7 +32,7 @@ int recoverJpeg(FILE * f, int index, const char * prefix)
 		uchar marker = fgetc(f);
 		if (firstMarker) {
 			/* First marker, an E0 or E1 marker must follow. */
-			if (marker != 0xE0 && marker != 0xE1) {
+			if (requireE0E1 && marker != 0xE0 && marker != 0xE1) {
 				/* Bad luck, reuse the index for the next file. */
 				return index;
 			}
