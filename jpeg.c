@@ -63,9 +63,12 @@ int recoverJpeg(FILE * f, int index, bool_t requireE0E1, const char * prefix)
 		fputc(0xFF, out);
 		fputc(marker, out);
 
-		/* Get the segment length. */
-		uchar length_hi = fgetc(f);
-		uchar length_lo = fgetc(f);
+		/* Get the segment length, taking care of EOFs. */
+		int length_hi = fgetc(f);
+		if (length_hi < 0 || length_hi > 255) break;
+		int length_lo = fgetc(f);
+		if (length_lo < 0 || length_lo > 255) break;
+
 		int length = (length_hi << 8) | length_lo;
 
 		/* Copy the length in the output stream. */
